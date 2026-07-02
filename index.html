@@ -160,7 +160,7 @@
         #wave-banner {
             position: absolute;
             top: 40%;
-            left: 40%;
+            left: 50%;
             transform: translate(-50%, -50%) scale(0.5);
             font-size: 3.5rem;
             color: #00f2fe;
@@ -240,15 +240,15 @@
     let player, bullets, enemies, particles, scrapItems;
     let score, wave, baseHp, maxHp, scrap, isGameOver;
     let enemiesLeftToSpawn, spawnTimer, spawnInterval;
-    let mouse = { x: 0, y: 0 };
+    let mouse = { x: 375, y: 300 };
     let isMouseDown = false;
     let lastShotTime = 0;
 
     // Upgrades Configuration Data
     const upgrades = {
-        fireRate: { lvl: 1, max: 5, baseCost: 15, costMult: 1.8, val: [400, 320, 240, 180, 120] }, // Delay in ms
-        multishot: { lvl: 1, max: 3, baseCost: 40, costMult: 2.5, val: [1, 2, 3] },               // Number of barrels
-        health: { lvl: 1, max: 5, baseCost: 10, costMult: 1.5, val: [100, 150, 200, 275, 350] }  // Max HP values
+        fireRate: { lvl: 1, max: 5, baseCost: 15, costMult: 1.8, val: [400, 320, 240, 180, 120] }, 
+        multishot: { lvl: 1, max: 3, baseCost: 40, costMult: 2.5, val: [1, 2, 3] },              
+        health: { lvl: 1, max: 5, baseCost: 10, costMult: 1.5, val: [100, 150, 200, 275, 350] }  
     };
 
     class Player {
@@ -276,6 +276,8 @@
 
             // Render dynamic barrels based on multi-shot scaling configuration
             ctx.fillStyle = '#00f2fe';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00f2fe';
             const numBarrels = upgrades.multishot.val[upgrades.multishot.lvl - 1];
             
             if (numBarrels === 1) {
@@ -314,12 +316,14 @@
             };
         }
         draw() {
+            ctx.save();
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
             ctx.fillStyle = '#fff';
             ctx.shadowBlur = 10;
             ctx.shadowColor = '#00f2fe';
             ctx.fill();
+            ctx.restore();
         }
         update() {
             this.x += this.velocity.x;
@@ -337,6 +341,7 @@
             this.color = color;
         }
         draw() {
+            ctx.save();
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
             ctx.fillStyle = '#0d0e15';
@@ -346,6 +351,7 @@
             ctx.shadowColor = this.color;
             ctx.fill();
             ctx.stroke();
+            ctx.restore();
         }
         update() {
             let angle = Math.atan2(player.y - this.y, player.x - this.x);
@@ -367,7 +373,6 @@
             ctx.translate(this.x, this.y);
             ctx.rotate(this.angle);
             ctx.beginPath();
-            // Draw a diamond shape for physical resource visibility
             ctx.moveTo(0, -this.radius);
             ctx.lineTo(this.radius, 0);
             ctx.lineTo(0, this.radius);
@@ -381,7 +386,6 @@
         }
         update() {
             this.angle += this.spinSpeed;
-            // Magnetic pull toward base center naturally when drifting nearby
             let dist = Math.hypot(player.x - this.x, player.y - this.y);
             if (dist < 180) {
                 let angle = Math.atan2(player.y - this.y, player.x - this.x);
@@ -428,7 +432,6 @@
         wave = 0;
         scrap = 0;
         
-        // Reset system architecture configurations to level 1 defaults
         upgrades.fireRate.lvl = 1;
         upgrades.multishot.lvl = 1;
         upgrades.health.lvl = 1;
@@ -504,7 +507,6 @@
         }
     }
 
-    // Cost calculation engine based on level scalar
     function getUpgradeCost(type) {
         const up = upgrades[type];
         return Math.floor(up.baseCost * Math.pow(up.costMult, up.lvl - 1));
@@ -518,11 +520,10 @@
             scrap -= cost;
             up.lvl++;
             
-            // Post-processing triggers based on unique stats modified
             if (type === 'health') {
                 const prevMax = maxHp;
                 maxHp = upgrades.health.val[up.lvl - 1];
-                baseHp += (maxHp - prevMax); // Dynamically heal up matching core extension
+                baseHp += (maxHp - prevMax); 
             }
 
             updateHUD();
@@ -570,10 +571,12 @@
         let rect = canvas.getBoundingClientRect();
         mouse.x = e.clientX - rect.left;
         mouse.y = e.clientY - rect.top;
-        player.angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+        if (player) {
+            player.angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+        }
     });
 
-    window.addEventListener('mousedown', () => { isMouseDown = true; });
+    canvas.addEventListener('mousedown', () => { isMouseDown = true; });
     window.addEventListener('mouseup', () => { isMouseDown = false; });
 
     function resetGame() {
@@ -587,11 +590,11 @@
         ctx.fillStyle = 'rgba(13, 14, 21, 0.25)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        if (!player) return;
         player.draw();
 
         if (isGameOver) return;
 
-        // Auto-firing processor loop if click holding
         if (isMouseDown) {
             fireWeapon();
         }
@@ -668,7 +671,6 @@
                     if (enemies[i].hp <= 0) {
                         createExplosion(enemies[i].x, enemies[i].y, enemies[i].color, 12);
                         
-                        // 75% drop rate probability for scrap resource allocation
                         if (Math.random() < 0.75) {
                             scrapItems.push(new Scrap(enemies[i].x, enemies[i].y));
                         }
